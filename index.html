@@ -407,6 +407,7 @@ const RAW = '.';
 // GEC code → region slug mapping
 const REGIONS = {
   africa: 'Africa',
+  antarctica: 'Antarctica',
   'australia-oceania': 'Oceania',
   'central-america-n-caribbean': 'Caribbean & C. America',
   'central-asia': 'Central Asia',
@@ -435,39 +436,104 @@ function gecToFlag(gec) {
   return iso ? emojiFlag(iso) : '🌐';
 }
 
-// Country index: fetched from meta/countries.json if available, else we build manually
-// We'll fetch the index file and then lazy-load individual country JSONs on click.
-
-// Hardcoded country list per region (GEC code, display name)
+// Ground-truth country index built from the factbook README (GEC codes → region folder)
+// Each entry: [gec, display name]. Region slug matches the actual folder name in the repo.
 const COUNTRY_INDEX = {
-  africa:[["af","Afghanistan"],["al","Albania"],["ag","Algeria"],["ao","Angola"],["bn","Benin"],["bc","Botswana"],["uv","Burkina Faso"],["bm","Burma"],["by","Burundi"],["cm","Cameroon"],["cv","Cape Verde"],["ct","Central African Republic"],["cd","Chad"],["cn","Comoros"],["cg","Congo DR"],["cf","Congo"],["dj","Djibouti"],["do","Dominica"],["ek","Equatorial Guinea"],["er","Eritrea"],["et","Ethiopia"],["gb","Gabon"],["ga","The Gambia"],["gh","Ghana"],["gv","Guinea"],["pu","Guinea-Bissau"],["iv","Cote d'Ivoire"],["ke","Kenya"],["lt","Lesotho"],["li","Liberia"],["ly","Libya"],["ma","Madagascar"],["mi","Malawi"],["ml","Mali"],["mr","Mauritania"],["mp","Mauritius"],["mo","Morocco"],["mz","Mozambique"],["wa","Namibia"],["ng","Niger"],["ni","Nigeria"],["rw","Rwanda"],["tp","Sao Tome and Principe"],["sg","Senegal"],["se","Seychelles"],["sl","Sierra Leone"],["so","Somalia"],["sf","South Africa"],["od","South Sudan"],["su","Sudan"],["tz","Tanzania"],["to","Togo"],["ts","Tunisia"],["ug","Uganda"],["za","Zambia"],["zi","Zimbabwe"]],
-  "australia-oceania":[["as","Australia"],["fj","Fiji"],["kr","Kiribati"],["rm","Marshall Islands"],["fm","Micronesia"],["nr","Nauru"],["nz","New Zealand"],["ps","Palau"],["pp","Papua New Guinea"],["ws","Samoa"],["bp","Solomon Islands"],["tn","Tonga"],["tv","Tuvalu"],["nh","Vanuatu"]],
-  "central-america-n-caribbean":[["ac","Antigua and Barbuda"],["bf","The Bahamas"],["bb","Barbados"],["bh","Belize"],["ca","Canada"],["cs","Costa Rica"],["cu","Cuba"],["do","Dominica"],["dr","Dominican Republic"],["es","El Salvador"],["gj","Grenada"],["gt","Guatemala"],["ha","Haiti"],["ho","Honduras"],["jm","Jamaica"],["mx","Mexico"],["nu","Nicaragua"],["pm","Panama"],["sc","Saint Kitts and Nevis"],["st","Saint Lucia"],["vc","Saint Vincent and the Grenadines"],["td","Trinidad and Tobago"]],
-  "central-asia":[["am","Armenia"],["aj","Azerbaijan"],["gg","Georgia"],["kz","Kazakhstan"],["kg","Kyrgyzstan"],["ti","Tajikistan"],["tx","Turkmenistan"],["uz","Uzbekistan"]],
-  "east-n-southeast-asia":[["bx","Brunei"],["cb","Cambodia"],["ch","China"],["id","Indonesia"],["ja","Japan"],["kn","North Korea"],["ks","South Korea"],["la","Laos"],["my","Malaysia"],["mg","Mongolia"],["bm","Burma"],["pp","Papua New Guinea"],["rp","Philippines"],["sn","Singapore"],["th","Thailand"],["tt","Timor-Leste"],["vm","Vietnam"],["tw","Taiwan"],["hk","Hong Kong"],["mc","Macau"]],
-  europe:[["al","Albania"],["an","Andorra"],["au","Austria"],["aj","Azerbaijan"],["bo","Belarus"],["be","Belgium"],["bk","Bosnia and Herzegovina"],["bu","Bulgaria"],["hr","Croatia"],["cy","Cyprus"],["ez","Czechia"],["da","Denmark"],["en","Estonia"],["fi","Finland"],["fr","France"],["gg","Georgia"],["gm","Germany"],["gr","Greece"],["hu","Hungary"],["ic","Iceland"],["ei","Ireland"],["it","Italy"],["kv","Kosovo"],["lg","Latvia"],["ls","Liechtenstein"],["lh","Lithuania"],["lu","Luxembourg"],["mk","North Macedonia"],["mt","Malta"],["mn","Monaco"],["mj","Montenegro"],["nl","Netherlands"],["no","Norway"],["pl","Poland"],["po","Portugal"],["ro","Romania"],["rs","Russia"],["sm","San Marino"],["ri","Serbia"],["lo","Slovakia"],["si","Slovenia"],["sp","Spain"],["sw","Sweden"],["sz","Switzerland"],["uk","United Kingdom"],["vt","Vatican City"],["ee","European Union"]],
-  "middle-east":[["ba","Bahrain"],["cy","Cyprus"],["ir","Iran"],["iz","Iraq"],["is","Israel"],["jo","Jordan"],["ku","Kuwait"],["le","Lebanon"],["mu","Oman"],["qa","Qatar"],["sa","Saudi Arabia"],["sy","Syria"],["ae","United Arab Emirates"],["ym","Yemen"],["we","West Bank"],["gz","Gaza Strip"]],
-  "north-america":[["ca","Canada"],["mx","Mexico"],["us","United States"]],
-  "south-america":[["ar","Argentina"],["bl","Bolivia"],["br","Brazil"],["ci","Chile"],["co","Colombia"],["ec","Ecuador"],["gy","Guyana"],["pa","Paraguay"],["pe","Peru"],["ns","Suriname"],["uy","Uruguay"],["ve","Venezuela"]],
-  "south-asia":[["af","Afghanistan"],["bg","Bangladesh"],["bt","Bhutan"],["in","India"],["mv","Maldives"],["np","Nepal"],["pk","Pakistan"],["ce","Sri Lanka"]],
-  oceans:[["xq","Arctic Ocean"],["zh","Atlantic Ocean"],["xo","Indian Ocean"],["zn","Pacific Ocean"],["oo","Southern Ocean"]],
-  world:[["xx","World"]],
+  africa: [
+    ["ag","Algeria"],["ao","Angola"],["bn","Benin"],["bc","Botswana"],["uv","Burkina Faso"],
+    ["bm","Burma"],["by","Burundi"],["cm","Cameroon"],["cv","Cabo Verde"],["ct","Central African Republic"],
+    ["cd","Chad"],["cn","Comoros"],["cf","Congo"],["cg","Congo, Democratic Republic of the"],
+    ["dj","Djibouti"],["eg","Egypt"],["ek","Equatorial Guinea"],["er","Eritrea"],["et","Ethiopia"],
+    ["wz","Eswatini"],["gb","Gabon"],["ga","The Gambia"],["gh","Ghana"],["gv","Guinea"],
+    ["pu","Guinea-Bissau"],["iv","Cote d'Ivoire"],["ke","Kenya"],["lt","Lesotho"],["li","Liberia"],
+    ["ly","Libya"],["ma","Madagascar"],["mi","Malawi"],["ml","Mali"],["mr","Mauritania"],
+    ["mp","Mauritius"],["mo","Morocco"],["mz","Mozambique"],["wa","Namibia"],["ng","Niger"],
+    ["ni","Nigeria"],["rw","Rwanda"],["tp","Sao Tome and Principe"],["sg","Senegal"],["se","Seychelles"],
+    ["sl","Sierra Leone"],["so","Somalia"],["sf","South Africa"],["od","South Sudan"],["su","Sudan"],
+    ["tz","Tanzania"],["to","Togo"],["ts","Tunisia"],["ug","Uganda"],["za","Zambia"],["zi","Zimbabwe"]
+  ],
+  antarctica: [
+    ["ay","Antarctica"]
+  ],
+  "australia-oceania": [
+    ["as","Australia"],["fj","Fiji"],["kr","Kiribati"],["rm","Marshall Islands"],["fm","Micronesia"],
+    ["nr","Nauru"],["nz","New Zealand"],["ps","Palau"],["pp","Papua New Guinea"],["ws","Samoa"],
+    ["bp","Solomon Islands"],["tn","Tonga"],["tv","Tuvalu"],["nh","Vanuatu"],
+    ["at","Ashmore and Cartier Islands"],["kt","Christmas Island"],["ck","Cocos (Keeling) Islands"],
+    ["cr","Coral Sea Islands"],["hm","Heard Island and McDonald Islands"],["nf","Norfolk Island"],
+    ["cw","Cook Islands"],["ne","Niue"],["tl","Tokelau"],["fp","French Polynesia"],["nc","New Caledonia"],
+    ["wf","Wallis and Futuna"]
+  ],
+  "central-america-n-caribbean": [
+    ["ac","Antigua and Barbuda"],["bf","The Bahamas"],["bb","Barbados"],["bh","Belize"],
+    ["cs","Costa Rica"],["cu","Cuba"],["do","Dominica"],["dr","Dominican Republic"],
+    ["es","El Salvador"],["gj","Grenada"],["gt","Guatemala"],["ha","Haiti"],["ho","Honduras"],
+    ["jm","Jamaica"],["nu","Nicaragua"],["pm","Panama"],["sc","Saint Kitts and Nevis"],
+    ["st","Saint Lucia"],["vc","Saint Vincent and the Grenadines"],["td","Trinidad and Tobago"],
+    ["av","Anguilla"],["bd","Bermuda"],["vi","British Virgin Islands"],["cj","Cayman Islands"],
+    ["mh","Montserrat"],["tk","Turks and Caicos Islands"],["aa","Aruba"],["uc","Curacao"],
+    ["nn","Sint Maarten"],["rq","Puerto Rico"],["vq","US Virgin Islands"],["bq","Navassa Island"]
+  ],
+  "central-asia": [
+    ["kz","Kazakhstan"],["kg","Kyrgyzstan"],["ti","Tajikistan"],["tx","Turkmenistan"],["uz","Uzbekistan"]
+  ],
+  "east-n-southeast-asia": [
+    ["bx","Brunei"],["cb","Cambodia"],["ch","China"],["id","Indonesia"],["ja","Japan"],
+    ["kn","North Korea"],["ks","South Korea"],["la","Laos"],["my","Malaysia"],["mg","Mongolia"],
+    ["rp","Philippines"],["sn","Singapore"],["th","Thailand"],["tt","Timor-Leste"],["vm","Vietnam"],
+    ["tw","Taiwan"],["hk","Hong Kong"],["mc","Macau"]
+  ],
+  europe: [
+    ["al","Albania"],["an","Andorra"],["au","Austria"],["bo","Belarus"],["be","Belgium"],
+    ["bk","Bosnia and Herzegovina"],["bu","Bulgaria"],["hr","Croatia"],["cy","Cyprus"],
+    ["ez","Czechia"],["da","Denmark"],["en","Estonia"],["fi","Finland"],["fr","France"],
+    ["gm","Germany"],["gr","Greece"],["hu","Hungary"],["ic","Iceland"],["ei","Ireland"],
+    ["it","Italy"],["kv","Kosovo"],["lg","Latvia"],["ls","Liechtenstein"],["lh","Lithuania"],
+    ["lu","Luxembourg"],["mk","North Macedonia"],["mt","Malta"],["mn","Monaco"],["mj","Montenegro"],
+    ["nl","Netherlands"],["no","Norway"],["pl","Poland"],["po","Portugal"],["ro","Romania"],
+    ["rs","Russia"],["sm","San Marino"],["ri","Serbia"],["lo","Slovakia"],["si","Slovenia"],
+    ["sp","Spain"],["sw","Sweden"],["sz","Switzerland"],["uk","United Kingdom"],["vt","Vatican City"],
+    ["up","Ukraine"],["md","Moldova"],["am","Armenia"],["aj","Azerbaijan"],["gg","Georgia"],
+    ["fo","Faroe Islands"],["gl","Greenland"],["gk","Guernsey"],["je","Jersey"],["im","Isle of Man"],
+    ["gi","Gibraltar"],["ax","Akrotiri"],["dx","Dhekelia"],["ee","European Union"]
+  ],
+  "middle-east": [
+    ["ba","Bahrain"],["ir","Iran"],["iz","Iraq"],["is","Israel"],["jo","Jordan"],["ku","Kuwait"],
+    ["le","Lebanon"],["mu","Oman"],["qa","Qatar"],["sa","Saudi Arabia"],["sy","Syria"],
+    ["ae","United Arab Emirates"],["ym","Yemen"],["we","West Bank"],["gz","Gaza Strip"],["tu","Turkey"]
+  ],
+  "north-america": [
+    ["ca","Canada"],["mx","Mexico"],["us","United States"],
+    ["aq","American Samoa"],["gq","Guam"],["cq","Northern Mariana Islands"],
+    ["wq","Wake Island"],["um","US Pacific Island Wildlife Refuges"]
+  ],
+  "south-america": [
+    ["ar","Argentina"],["bl","Bolivia"],["br","Brazil"],["ci","Chile"],["co","Colombia"],
+    ["ec","Ecuador"],["gy","Guyana"],["pa","Paraguay"],["pe","Peru"],["ns","Suriname"],
+    ["uy","Uruguay"],["ve","Venezuela"],["fk","Falkland Islands"]
+  ],
+  "south-asia": [
+    ["af","Afghanistan"],["bg","Bangladesh"],["bt","Bhutan"],["in","India"],
+    ["mv","Maldives"],["np","Nepal"],["pk","Pakistan"],["ce","Sri Lanka"]
+  ],
+  oceans: [
+    ["xq","Arctic Ocean"],["zh","Atlantic Ocean"],["xo","Indian Ocean"],
+    ["zn","Pacific Ocean"],["oo","Southern Ocean"]
+  ],
+  world: [["xx","World"]]
 };
-
-// Deduplication helper
-const seen = new Set();
 
 // State
 let currentRegion = 'all';
 let searchQuery = '';
-let allCountries = []; // {gec, name, region}
 
-// Build flat list
+// Build flat deduplicated list — one entry per GEC code, first region wins
+const allCountries = [];
+const seenGec = new Set();
 for (const [region, list] of Object.entries(COUNTRY_INDEX)) {
   for (const [gec, name] of list) {
-    const key = `${gec}-${region}`;
-    if (!seen.has(key)) {
-      seen.add(key);
+    if (!seenGec.has(gec)) {
+      seenGec.add(gec);
       allCountries.push({ gec, name, region });
     }
   }
