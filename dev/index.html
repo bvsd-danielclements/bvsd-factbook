@@ -180,7 +180,7 @@ header::before {
 
 /* Center grid */
 .col-grid {
-  flex: 0 0 360px;
+  flex: 0 0 480px;
   display: flex;
   flex-direction: column;
   min-width: 200px;
@@ -237,7 +237,7 @@ header::before {
   overflow-y: auto;
   padding: 0.5rem 1rem 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   align-content: start;
 }
@@ -955,6 +955,10 @@ function expandIfCollapsed(id) {
 // ── Init ──
 buildTabs();
 renderGrid();
+
+// Pick a random country on load for a welcoming first impression
+const randomCountry = allCountries[Math.floor(Math.random() * allCountries.length)];
+toggleSelect(null, randomCountry);
 </script>
 </body>
 </html>
